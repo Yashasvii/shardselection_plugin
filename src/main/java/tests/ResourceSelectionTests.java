@@ -7,9 +7,9 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
+import shardSelectionAlgorithms.RankS;
 import shardSelectionAlgorithms.ReDDE;
-import shardSelectionAlgorithms.ReDDETop;
-import shardSelectionAlgorithms.SUSHI;
+import shardSelectionAlgorithms.Sushi;
 import utils.ScoredEntity;
 
 
@@ -55,9 +55,9 @@ public class ResourceSelectionTests {
 		List<Object[]> params = new ArrayList<Object[]>();
 		
 		params.add(new Object[]{new ReDDE()});
-		params.add(new Object[]{new ReDDETop()});
-		params.add(new Object[]{new ReDDETop()});
-		params.add(new Object[]{new SUSHI()});
+		params.add(new Object[]{new Sushi()});
+		params.add(new Object[]{new RankS()});
+		params.add(new Object[]{new Sushi()});
 
 		return params;
 	}

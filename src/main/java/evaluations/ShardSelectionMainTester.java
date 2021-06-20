@@ -3,7 +3,7 @@ package evaluations;
 import abstractEntity.AbstractResourceSelection;
 import abstractEntity.Resource;
 import abstractEntity.ResourceSelection;
-import shardSelectionAlgorithms.ReDDETop;
+import shardSelectionAlgorithms.ReDDE;
 import utils.ScoredEntity;
 
 import java.io.BufferedReader;
@@ -52,7 +52,7 @@ public class ShardSelectionMainTester {
         }
 
         // Initialize resource selection
-        AbstractResourceSelection selection = new ReDDETop();
+        AbstractResourceSelection selection = new ReDDE();
         int kParam = 1000;
         selection.setCompleteRankCutoff(kParam);
 

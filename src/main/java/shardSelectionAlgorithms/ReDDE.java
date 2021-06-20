@@ -2,6 +2,7 @@ package shardSelectionAlgorithms;
 
 import abstractEntity.AbstractResourceSelection;
 import abstractEntity.Resource;
+import shardSelectionAlgorithms.interfaces.ReDDEInterface;
 import utils.ScoredEntity;
 
 import java.util.HashMap;
@@ -12,7 +13,7 @@ import java.util.Map;
  * @author yashasvi
  */
 
-public class ReDDE extends AbstractResourceSelection {
+public class ReDDE extends AbstractResourceSelection implements ReDDEInterface {
 
 	protected int currentRankCutoff = -1;
 
@@ -23,7 +24,7 @@ public class ReDDE extends AbstractResourceSelection {
 		Map<Resource, Double> resourceScores = new HashMap<Resource, Double>();
 
 		currentRankCutoff = sampleRankCutoff > 0 ? sampleRankCutoff :
-			getSampleRank(documents, resources, completeRankCutoff);
+			getCentralizedIndexingRank(documents, resources, completeRankCutoff);
 		
 		for (int i = 0; i < documents.size() && i < currentRankCutoff; i++) {
 			Resource resource = resources.get(i);
@@ -41,7 +42,24 @@ public class ReDDE extends AbstractResourceSelection {
 		
 		return resourceScores;
 	}
-	
+
+	@Override
+	 public <T> int getCentralizedIndexingRank(List<ScoredEntity<T>> documents,
+												 List<Resource> resources, int completeRank)
+	{
+		int rank = 0;
+		for (int i = 0; i < documents.size(); i++) {
+			rank += resources.get(i).getSize() / resources.get(i).getSampleSize();
+
+			if (rank >= completeRank) {
+				return i + 1;
+			}
+		}
+
+		return rank;
+	}
+
+
 	/**
 	 * Returns a score that a resource receives
 	 * if its document appears at a given rank.
