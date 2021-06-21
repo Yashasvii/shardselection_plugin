@@ -19,6 +19,24 @@ public class ShardSelectionMainTester {
 
 
     /**
+     * The resource selection method.
+     */
+    private final ResourceSelection selection;
+
+    /**
+     * The score normalization method.
+     */
+
+
+    public ShardSelectionMainTester(ResourceSelection selection) {
+        if (selection == null) {
+            throw new NullPointerException("The resource selection method is null.");
+        }
+
+        this.selection = selection;
+    }
+
+    /**
      * The main executable method.
      *
      * @param args The external parameters of the method.
@@ -26,58 +44,30 @@ public class ShardSelectionMainTester {
     public static void main(String[] args) {
         // Check parameters
         if (args.length < 1) {
-            printFunction();
             System.exit(1);
         }
-        String csiResultsPath = args[0];
-        File csiResultsFile = new File(csiResultsPath);
-        if (!csiResultsFile.exists() || !csiResultsFile.isFile()) {
-            System.out.println("The CSI results file does not exist or is not a regular file: " + csiResultsPath);
-            printFunction();
+
+        String inputFolder = args[0];
+        File inputFolderDir = new File(inputFolder);
+        if (!inputFolderDir.exists() || !inputFolderDir.isDirectory()) {
+            System.out.println("The directory " + inputFolder + " containing chunk(shards) of files doesn't exists");
             System.exit(1);
         }
-        String sourceSpecificResultsPath = args[1];
-        File sourceSpecificResultsDir = new File(sourceSpecificResultsPath);
-        if (!sourceSpecificResultsDir.exists() || !sourceSpecificResultsDir.isDirectory()) {
-            System.out.println("The folder with source-specific results files does not exist or is not a regular directory: " + sourceSpecificResultsPath);
-            printFunction();
-            System.exit(1);
-        }
-        String doc2resourcePath = args[2];
-        File doc2resourceFile = new File(doc2resourcePath);
-        if (!doc2resourceFile.exists() || !doc2resourceFile.isFile()) {
-            System.out.println("The document-to-resource mapping file does not exist or is not a regular file: " + doc2resourcePath);
-            printFunction();
+        String queryFile = args[1];
+        File queryFileObject = new File(queryFile);
+        if (!queryFileObject.exists() || !queryFileObject.isFile()) {
+            System.out.println("The file " + queryFile + " containing the query doesn't exists");
             System.exit(1);
         }
 
         // Initialize resource selection
-        AbstractResourceSelection selection = new ReDDE();
+        ReDDE redde = new ReDDE();
         int kParam = 1000;
-        selection.setCompleteRankCutoff(kParam);
+        redde.setCompleteRankCutoff(kParam);
 
 
 
-        // Initialize a CSI searcher
-        int csiTopN = 1000;
-        FileSearcher csiSearcher = new FileSearcher(csiResultsFile, csiTopN);
-
-        List<Resource> resources = getResources();
-        Map<Resource, FileSearcher> resourceSearchers = getResourceSearchers(resources, sourceSpecificResultsPath);
-        Map<String, Resource> doc2resource = getDoc2Resource(doc2resourceFile, resources);
-
-        // Create and run the example
-        ShardSelectionMainTester fileExample = new ShardSelectionMainTester(selection);
-        fileExample.run(csiSearcher, resourceSearchers, doc2resource);
     }
-
-    private static void printFunction() {
-        System.out.println("USAGE: FileExample <csi results> <source-specific results> <document-to-resource mapping>");
-        System.out.println("\tCSI results - a path to a TREC-formatted CSI results file.");
-        System.out.println("\tSource-specific results - a path to a folder with TREC-formatted source-specific results files.");
-        System.out.println("\tDocument-to-resource mapping - a file with the mapping between CSI documents and their corresponding resources.");
-    }
-
     /**
      * Returns a list of resources
      * (assumes that there are 4 resources with ids from 1 to 4).
@@ -103,8 +93,7 @@ public class ShardSelectionMainTester {
      * has a name equal to resource id.
      */
     private static Map<Resource, FileSearcher> getResourceSearchers(List<Resource> resources,
-                                                                    String resultsDir)
-    {
+                                                                    String resultsDir) {
         Map<Resource, FileSearcher> resourceSearchers = new HashMap<Resource, FileSearcher>();
         int resourceTopN = 100;
         for (Resource resource : resources) {
@@ -119,8 +108,7 @@ public class ShardSelectionMainTester {
      * Returns a mapping between CSI documents and their corresponding resources.
      */
     private static Map<String, Resource> getDoc2Resource(File doc2resourceFile,
-                                                         List<Resource> resources)
-    {
+                                                         List<Resource> resources) {
         Map<String, Resource> doc2resource = new HashMap<String, Resource>();
 
         try {
@@ -153,39 +141,18 @@ public class ShardSelectionMainTester {
         return doc2resource;
     }
 
-
-    /**
-     * The resource selection method.
-     */
-    private final ResourceSelection selection;
-    /**
-     * The score normalization method.
-     */
-
-
-    public ShardSelectionMainTester(ResourceSelection selection) {
-        if (selection == null) {
-            throw new NullPointerException("The resource selection method is null.");
-        }
-
-        this.selection = selection;
-    }
-
     /**
      * Runs the example.
      *
-     * @param csiSearcher The CSI searcher.
+     * @param csiSearcher       The CSI searcher.
      * @param resourceSearchers The mapping between resources and their corresponding searchers.
-     * @param doc2resource The mapping between CSI documents and their corresponding resources.
-     *
-     * @throws NullPointerException
-     * 		if <code>csiSearcher</code>, or <code>resourceSearchers</code>,
-     * 		or <code>doc2resource</code> is <code>null</code>.
+     * @param doc2resource      The mapping between CSI documents and their corresponding resources.
+     * @throws NullPointerException if <code>csiSearcher</code>, or <code>resourceSearchers</code>,
+     *                              or <code>doc2resource</code> is <code>null</code>.
      */
     public void run(FileSearcher csiSearcher,
                     Map<Resource, FileSearcher> resourceSearchers,
-                    Map<String, Resource> doc2resource)
-    {
+                    Map<String, Resource> doc2resource) {
         if (csiSearcher == null) {
             throw new NullPointerException("The CSI searcher is null.");
         }
@@ -214,8 +181,7 @@ public class ShardSelectionMainTester {
      * For a given list of documents returns a list of their corresponding resources.
      */
     private List<Resource> getResources(List<ScoredEntity<String>> documents,
-                                        Map<String, Resource> doc2resource)
-    {
+                                        Map<String, Resource> doc2resource) {
         List<Resource> resources = new ArrayList<Resource>(documents.size());
         List<ScoredEntity<String>> filteredDocs = new ArrayList<ScoredEntity<String>>(documents.size());
         filteredDocs.addAll(documents);

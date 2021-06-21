@@ -12,7 +12,7 @@ import java.util.Map;
 /**
  * @author yashasvi
  */
-public class RankS  extends AbstractResourceSelection implements RanKSInterface {
+public class RankS extends AbstractResourceSelection implements RanKSInterface {
 
     private static final double THRESHOLD = 30.00;
     private static final double VOTING_BIAS = 5.00;
@@ -50,7 +50,7 @@ public class RankS  extends AbstractResourceSelection implements RanKSInterface 
 
     private double votingCriteria(double score) {
 
-        if(score<THRESHOLD) {
+        if (score < THRESHOLD) {
             return THRESHOLD;
         }
         return THRESHOLD + VOTING_BIAS;

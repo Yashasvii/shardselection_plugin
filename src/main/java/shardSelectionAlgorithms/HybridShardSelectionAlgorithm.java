@@ -44,17 +44,18 @@ public class HybridShardSelectionAlgorithm extends AbstractResourceSelection imp
     }
 
 
-
-
-
-    /** From ReDDe **/
+    /**
+     * From ReDDe
+     **/
     @Override
     public <T> int getCentralizedIndexingRank(List<ScoredEntity<T>> documents, List<Resource> resources, int completeRank) {
         ReDDE redde = new ReDDE();
         return redde.getCentralizedIndexingRank(documents, resources, completeRank);
     }
 
-    /** From Sushi **/
+    /**
+     * From Sushi
+     **/
     @Override
     public <T> Map<Resource, Regression> adjustRank(List<ScoredEntity<T>> documents, List<Resource> resources) {
 
@@ -62,10 +63,12 @@ public class HybridShardSelectionAlgorithm extends AbstractResourceSelection imp
         return sushi.adjustRank(documents, resources);
     }
 
-    /** From RankS **/
+    /**
+     * From RankS
+     **/
     @Override
     public double getRankVoting(double score) {
-        RankS rankS =  new RankS();
+        RankS rankS = new RankS();
         return rankS.getRankVoting(score);
     }
 

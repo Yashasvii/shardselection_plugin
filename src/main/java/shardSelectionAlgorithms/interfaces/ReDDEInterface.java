@@ -8,7 +8,7 @@ import java.util.List;
 /**
  * @author yashasvi
  */
-public interface ReDDEInterface  {
+public interface ReDDEInterface {
 
 
     <T> int getCentralizedIndexingRank(List<ScoredEntity<T>> documents,

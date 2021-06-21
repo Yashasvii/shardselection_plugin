@@ -44,7 +44,6 @@ public abstract class Regression {
      * </p>
      *
      * @param x The input <code>x</code> value.
-     *
      * @return The predicted <code>y</code> value.
      */
     public double predict(double x) {
@@ -90,7 +89,6 @@ public abstract class Regression {
      * Returns <code>f(x)</code>. Must be implemented by subclasses.
      *
      * @param x The <code>x</code> value.
-     *
      * @return The <code>f(x)</code> value.
      */
     protected abstract double f(double x);

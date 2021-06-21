@@ -1,4 +1,3 @@
-
 package abstractEntity;
 
 
@@ -11,6 +10,6 @@ import java.util.List;
  */
 public interface ResourceSelection {
 
-	<T> List<ScoredEntity<Resource>> select(List<ScoredEntity<T>> documents,
-											List<Resource> resources);
+    <T> List<ScoredEntity<Resource>> select(List<ScoredEntity<T>> documents,
+                                            List<Resource> resources);
 }
