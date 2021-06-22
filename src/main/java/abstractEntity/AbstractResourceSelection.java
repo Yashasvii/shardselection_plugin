@@ -1,5 +1,6 @@
 package abstractEntity;
 
+import helperClasses.MinMax;
 import utils.ScoredEntity;
 
 import java.util.*;
@@ -18,29 +19,10 @@ public abstract class AbstractResourceSelection implements ResourceSelection {
      * The complete rank cutoff is used by default.
      * </p>
      */
-    protected int completeRankCutoff = 100;
+    protected int completeRankCutoff = 1000;
+    private static final double initialValue = 0.00;
 
-    /**
-     * A rank at which a <i>sample</i> ranking of documents is truncated.
-     * All documents above the cutoff are considered by SD resource selection
-     * and all documents bellow the cutoff are discarded.
-     *
-     * <p>
-     * The sample rank cutoff is used only if set by {@link #setSampleRankCutoff(int)}.
-     * In these case {@link #completeRankCutoff} is ignored.
-     * </p>
-     */
     protected int sampleRankCutoff = -1;
-
-    /**
-     * Returns the complete rank cutoff.
-     *
-     * @return The complete rank cutoff.
-     * @see #completeRankCutoff
-     */
-    public int getCompleteRankCutoff() {
-        return completeRankCutoff;
-    }
 
     /**
      * Sets the complete rank cutoff.
@@ -61,37 +43,6 @@ public abstract class AbstractResourceSelection implements ResourceSelection {
         }
         this.completeRankCutoff = completeRankCutoff;
         this.sampleRankCutoff = -1;
-    }
-
-    /**
-     * Returns the sample rank cutoff.
-     *
-     * @return The sample rank cutoff.
-     * @see #sampleRankCutoff
-     */
-    public int getSampleRankCutoff() {
-        return sampleRankCutoff;
-    }
-
-    /**
-     * Sets the sample rank cutoff.
-     * The sample rank cutoff should be positive.
-     *
-     * <p>
-     * If set,  {@link #sampleRankCutoff} is used,
-     * while {@link #completeRankCutoff} is ignored.
-     * </p>
-     *
-     * @param sampleRankCutoff The sample rank cutoff.
-     * @throws IllegalArgumentException if <code>sampleRankCutoff</code> is less than or equal to zero.
-     * @see #sampleRankCutoff
-     */
-    public void setSampleRankCutoff(int sampleRankCutoff) {
-        if (sampleRankCutoff <= 0) {
-            throw new IllegalArgumentException("The sample rank cutoff is not positive: " + sampleRankCutoff);
-        }
-        this.sampleRankCutoff = sampleRankCutoff;
-        this.completeRankCutoff = -1;
     }
 
     @Override
@@ -124,6 +75,27 @@ public abstract class AbstractResourceSelection implements ResourceSelection {
         addZeroScoredResources(sortedResources, scoredResources);
 
         return scoredResources;
+    }
+
+    @Override
+    public <T> double getDocumentScore(List<ScoredEntity<T>> documents, List<Resource> resources) {
+
+        List<ScoredEntity<Resource>> scoredResources = select(documents, resources);
+        List<ScoredEntity<Resource>> normResources = new MinMax().normalize(scoredResources);
+
+        double score = 0.00;
+        for (ScoredEntity<Resource> normResource : normResources) {
+               score += normResource.getScore();
+        }
+        return getScoreByFactor(score + getInitialThreshold(),3) ;
+    }
+
+    public double getScoreByFactor(double score, int factor) {
+        return score * factor;
+    }
+
+    public double getInitialThreshold() {
+        return initialValue;
     }
 
     /**

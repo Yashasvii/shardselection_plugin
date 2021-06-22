@@ -16,6 +16,7 @@ public class RankS extends AbstractResourceSelection implements RanKSInterface {
 
     private static final double THRESHOLD = 30.00;
     private static final double VOTING_BIAS = 5.00;
+    private static final double initialValue = 0.15;
 
 
     @Override
@@ -54,5 +55,10 @@ public class RankS extends AbstractResourceSelection implements RanKSInterface {
             return THRESHOLD;
         }
         return THRESHOLD + VOTING_BIAS;
+    }
+
+    @Override
+    public double getInitialThreshold() {
+        return initialValue;
     }
 }

@@ -17,12 +17,22 @@ import java.util.Map;
  */
 public class HybridShardSelectionAlgorithm extends AbstractResourceSelection implements RanKSInterface, ReDDEInterface, SushiInterface {
 
+    private static final int  rankThreshold = 1000;
+    private static final double initialValue = 0.45;
 
     @Override
     protected <T> Map<Resource, Double> getResourceScores(List<ScoredEntity<T>> documents, List<Resource> resources) {
         Map<Resource, Double> resourceScores = new HashMap<Resource, Double>();
 
+        double resourcetoScore = 0.00;
         Map<Resource, Regression> resource2regression = adjustRank(documents, resources); //From Sushi
+
+            for (Map.Entry<Resource, Regression> res2regr : resource2regression.entrySet()) {
+                Regression regression = res2regr.getValue();
+                for (int i = 1; i <= rankThreshold; i++) {
+                    resourcetoScore += regression.predict(i);
+                }
+            }
 
         int currentRankCutoff = sampleRankCutoff > 0 ? sampleRankCutoff :
                 getCentralizedIndexingRank(documents, resources, completeRankCutoff); //From Reddie
@@ -32,13 +42,13 @@ public class HybridShardSelectionAlgorithm extends AbstractResourceSelection imp
             Resource resource = resources.get(i);
 
             double score = resourceScores.containsKey(resource) ? resourceScores.get(resource) : 0;
-            score += getRankVoting(documents.get(i).getScore());
-            resourceScores.put(resource, score); //From RankS
+            score += getRankVoting(documents.get(i).getScore());  //From RankS
+            resourceScores.put(resource, score+resourcetoScore);
         }
 
         for (Resource resource : resourceScores.keySet()) {
             double score = resourceScores.get(resource) * resource.getSize() / resource.getSampleSize();
-            resourceScores.put(resource, score);
+            resourceScores.put(resource, score+resourcetoScore);
         }
         return resourceScores;
     }
@@ -70,6 +80,11 @@ public class HybridShardSelectionAlgorithm extends AbstractResourceSelection imp
     public double getRankVoting(double score) {
         RankS rankS = new RankS();
         return rankS.getRankVoting(score);
+    }
+
+    @Override
+    public double getInitialThreshold() {
+        return initialValue;
     }
 
 

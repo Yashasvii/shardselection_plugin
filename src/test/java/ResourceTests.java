@@ -1,6 +1,3 @@
-
-package tests;
-
 import abstractEntity.Resource;
 import org.junit.Test;
 

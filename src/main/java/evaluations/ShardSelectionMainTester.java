@@ -3,7 +3,13 @@ package evaluations;
 import abstractEntity.AbstractResourceSelection;
 import abstractEntity.Resource;
 import abstractEntity.ResourceSelection;
+import helperClasses.CORINormalization;
+import helperClasses.MinMax;
+import helperClasses.ScoreNormalization;
+import shardSelectionAlgorithms.HybridShardSelectionAlgorithm;
+import shardSelectionAlgorithms.RankS;
 import shardSelectionAlgorithms.ReDDE;
+import shardSelectionAlgorithms.Sushi;
 import utils.ScoredEntity;
 
 import java.io.BufferedReader;
@@ -26,14 +32,15 @@ public class ShardSelectionMainTester {
     /**
      * The score normalization method.
      */
+    ScoreNormalization normalization;
 
-
-    public ShardSelectionMainTester(ResourceSelection selection) {
+    public ShardSelectionMainTester(ResourceSelection selection, ScoreNormalization normalization) {
         if (selection == null) {
             throw new NullPointerException("The resource selection method is null.");
         }
 
         this.selection = selection;
+        this.normalization = normalization;
     }
 
     /**
@@ -46,45 +53,53 @@ public class ShardSelectionMainTester {
         if (args.length < 1) {
             System.exit(1);
         }
-
-        String inputFolder = args[0];
-        File inputFolderDir = new File(inputFolder);
-        if (!inputFolderDir.exists() || !inputFolderDir.isDirectory()) {
-            System.out.println("The directory " + inputFolder + " containing chunk(shards) of files doesn't exists");
+        String csiResultsPath = args[0];
+        File csiResultsFile = new File(csiResultsPath);
+        if (!csiResultsFile.exists() || !csiResultsFile.isFile()) {
+            System.out.println("The CSI results file does not exist or is not a regular file: " + csiResultsPath);
             System.exit(1);
         }
-        String queryFile = args[1];
-        File queryFileObject = new File(queryFile);
-        if (!queryFileObject.exists() || !queryFileObject.isFile()) {
-            System.out.println("The file " + queryFile + " containing the query doesn't exists");
+        String sourceSpecificResultsPath = args[1];
+        File sourceSpecificResultsDir = new File(sourceSpecificResultsPath);
+        if (!sourceSpecificResultsDir.exists() || !sourceSpecificResultsDir.isDirectory()) {
+            System.out.println("The folder with source-specific results files does not exist or is not a regular directory: " + sourceSpecificResultsPath);
+            System.exit(1);
+        }
+        String doc2resourcePath = args[2];
+        File doc2resourceFile = new File(doc2resourcePath);
+        if (!doc2resourceFile.exists() || !doc2resourceFile.isFile()) {
+            System.out.println("The document-to-resource mapping file does not exist or is not a regular file: " + doc2resourcePath);
             System.exit(1);
         }
 
         // Initialize resource selection
-        ReDDE redde = new ReDDE();
+     // ResourceSelection selection = new ReDDE();
+       //ResourceSelection selection = new Sushi();
+      //ResourceSelection selection = new RankS();
+      ResourceSelection selection = new HybridShardSelectionAlgorithm();
         int kParam = 1000;
-        redde.setCompleteRankCutoff(kParam);
+        ((AbstractResourceSelection) selection).setCompleteRankCutoff(kParam);
 
+        // Initialize score normalization
+        ScoreNormalization normalization = new CORINormalization();
+        ScoreNormalization baseNormalization = new MinMax();
+        ((CORINormalization) normalization).setNormalization(baseNormalization);
+        double lambdaParam = 0.4;
+        ((CORINormalization) normalization).setLambda(lambdaParam);
 
+        // Initialize a CSI searcher
+        int csiTopN = 1000;
+        FileSearcher csiSearcher = new FileSearcher(csiResultsFile, csiTopN);
 
+        List<Resource> resources = getResources();
+        Map<Resource, FileSearcher> resourceSearchers = getResourceSearchers(resources, sourceSpecificResultsPath);
+        Map<String, Resource> doc2resource = getDoc2Resource(doc2resourceFile, resources);
+
+        // Create and run the example
+        ShardSelectionMainTester fileExample = new ShardSelectionMainTester(selection, normalization);
+        fileExample.run(csiSearcher, resourceSearchers, doc2resource);
     }
-    /**
-     * Returns a list of resources
-     * (assumes that there are 4 resources with ids from 1 to 4).
-     * The resource and sample sizes are generated randomly (for example purpose only!).
-     */
-    private static List<Resource> getResources() {
-        List<Resource> resources = new ArrayList<Resource>(4);
-        Random random = new Random(42);
-        for (int i = 1; i <= 4; i++) {
-            String resourceId = Integer.toString(i);
-            int fullSize = random.nextInt(100000);
-            int sampleSize = random.nextInt(1000);
-            Resource resource = new Resource(resourceId, fullSize, sampleSize);
-            resources.add(resource);
-        }
-        return resources;
-    }
+
 
     /**
      * Returns a mapping between resources and their searchers.
@@ -163,17 +178,14 @@ public class ShardSelectionMainTester {
         // Process queries (assumes that there are 5 queries with ids from 1 to 5)
         for (int queryId = 1; queryId <= 5; queryId++) {
             System.out.println("Processing query " + queryId);
-            List<ScoredEntity<String>> mergedResult = new ArrayList<ScoredEntity<String>>();
 
             // Obtain a CSI ranking of documents and a list of corresponding sources
             List<ScoredEntity<String>> csiDocs = csiSearcher.search(Integer.toString(queryId));
             List<Resource> resources = getResources(csiDocs, doc2resource);
 
-            // Run resource selection and normalize resource scores
-            List<ScoredEntity<Resource>> scoredResources = selection.select(csiDocs, resources);
+            double documentScore = selection.getDocumentScore(csiDocs, resources);
 
-
-            System.out.println("\tDocument ranking: " + mergedResult);
+            System.out.println("\tResource ranking: " + documentScore);
         }
     }
 
@@ -198,6 +210,19 @@ public class ShardSelectionMainTester {
         documents.clear();
         documents.addAll(filteredDocs);
 
+        return resources;
+    }
+
+    private static List<Resource> getResources() {
+        List<Resource> resources = new ArrayList<Resource>(4);
+        Random random = new Random(42);
+        for (int i = 1; i <= 4; i++) {
+            String resourceId = Integer.toString(i);
+            int fullSize = random.nextInt(100000);
+            int sampleSize = random.nextInt(1000);
+            Resource resource = new Resource(resourceId, fullSize, sampleSize);
+            resources.add(resource);
+        }
         return resources;
     }
 }

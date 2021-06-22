@@ -1,5 +1,3 @@
-package tests;
-
 import abstractEntity.Resource;
 import abstractEntity.ResourceSelection;
 import org.junit.BeforeClass;
