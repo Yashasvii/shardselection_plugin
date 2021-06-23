@@ -50,54 +50,62 @@ public class ShardSelectionMainTester {
      */
     public static void main(String[] args) {
         // Check parameters
-        if (args.length < 1) {
-            System.exit(1);
-        }
-        String csiResultsPath = args[0];
-        File csiResultsFile = new File(csiResultsPath);
-        if (!csiResultsFile.exists() || !csiResultsFile.isFile()) {
-            System.out.println("The CSI results file does not exist or is not a regular file: " + csiResultsPath);
-            System.exit(1);
-        }
-        String sourceSpecificResultsPath = args[1];
-        File sourceSpecificResultsDir = new File(sourceSpecificResultsPath);
-        if (!sourceSpecificResultsDir.exists() || !sourceSpecificResultsDir.isDirectory()) {
-            System.out.println("The folder with source-specific results files does not exist or is not a regular directory: " + sourceSpecificResultsPath);
-            System.exit(1);
-        }
-        String doc2resourcePath = args[2];
-        File doc2resourceFile = new File(doc2resourcePath);
-        if (!doc2resourceFile.exists() || !doc2resourceFile.isFile()) {
-            System.out.println("The document-to-resource mapping file does not exist or is not a regular file: " + doc2resourcePath);
-            System.exit(1);
-        }
+//        if (args.length < 1) {
+//            System.exit(1);
+//        }
+//        String csiResultsPath = args[0];
+//        File csiResultsFile = new File(csiResultsPath);
+//        if (!csiResultsFile.exists() || !csiResultsFile.isFile()) {
+//            System.out.println("The CSI results file does not exist or is not a regular file: " + csiResultsPath);
+//            System.exit(1);
+//        }
+//        String sourceSpecificResultsPath = args[1];
+//        File sourceSpecificResultsDir = new File(sourceSpecificResultsPath);
+//        if (!sourceSpecificResultsDir.exists() || !sourceSpecificResultsDir.isDirectory()) {
+//            System.out.println("The folder with source-specific results files does not exist or is not a regular directory: " + sourceSpecificResultsPath);
+//            System.exit(1);
+//        }
+//        String doc2resourcePath = args[2];
+//        File doc2resourceFile = new File(doc2resourcePath);
+//        if (!doc2resourceFile.exists() || !doc2resourceFile.isFile()) {
+//            System.out.println("The document-to-resource mapping file does not exist or is not a regular file: " + doc2resourcePath);
+//            System.exit(1);
+//        }
 
         // Initialize resource selection
      // ResourceSelection selection = new ReDDE();
        //ResourceSelection selection = new Sushi();
       //ResourceSelection selection = new RankS();
       ResourceSelection selection = new HybridShardSelectionAlgorithm();
-        int kParam = 1000;
-        ((AbstractResourceSelection) selection).setCompleteRankCutoff(kParam);
+//        int kParam = 1000;
+//        ((AbstractResourceSelection) selection).setCompleteRankCutoff(kParam);
+//
+//        // Initialize score normalization
+//        ScoreNormalization normalization = new CORINormalization();
+//        ScoreNormalization baseNormalization = new MinMax();
+//        ((CORINormalization) normalization).setNormalization(baseNormalization);
+//        double lambdaParam = 0.4;
+//        ((CORINormalization) normalization).setLambda(lambdaParam);
+//
+//        // Initialize a CSI searcher
+//        int csiTopN = 1000;
+//        FileSearcher csiSearcher = new FileSearcher(csiResultsFile, csiTopN);
+//
+//        List<Resource> resources = getResources();
+//        Map<Resource, FileSearcher> resourceSearchers = getResourceSearchers(resources, sourceSpecificResultsPath);
+//        Map<String, Resource> doc2resource = getDoc2Resource(doc2resourceFile, resources);
+//
+//        // Create and run the example
+//        ShardSelectionMainTester fileExample = new ShardSelectionMainTester(selection, normalization);
+//        fileExample.run(csiSearcher, resourceSearchers, doc2resource);
 
-        // Initialize score normalization
-        ScoreNormalization normalization = new CORINormalization();
-        ScoreNormalization baseNormalization = new MinMax();
-        ((CORINormalization) normalization).setNormalization(baseNormalization);
-        double lambdaParam = 0.4;
-        ((CORINormalization) normalization).setLambda(lambdaParam);
+           //csiTopN 92 to 5000
 
-        // Initialize a CSI searcher
-        int csiTopN = 1000;
-        FileSearcher csiSearcher = new FileSearcher(csiResultsFile, csiTopN);
+            double documentScore = selection.getDocumentScore(5000);
+            System.out.println("documentScore = " + documentScore);
+            System.out.println("--------------------------------------------");
 
-        List<Resource> resources = getResources();
-        Map<Resource, FileSearcher> resourceSearchers = getResourceSearchers(resources, sourceSpecificResultsPath);
-        Map<String, Resource> doc2resource = getDoc2Resource(doc2resourceFile, resources);
 
-        // Create and run the example
-        ShardSelectionMainTester fileExample = new ShardSelectionMainTester(selection, normalization);
-        fileExample.run(csiSearcher, resourceSearchers, doc2resource);
     }
 
 
@@ -168,25 +176,25 @@ public class ShardSelectionMainTester {
     public void run(FileSearcher csiSearcher,
                     Map<Resource, FileSearcher> resourceSearchers,
                     Map<String, Resource> doc2resource) {
-        if (csiSearcher == null) {
-            throw new NullPointerException("The CSI searcher is null.");
-        }
-        if (doc2resource == null) {
-            throw new NullPointerException("The mapping between documents and resources is null.");
-        }
-
-        // Process queries (assumes that there are 5 queries with ids from 1 to 5)
-        for (int queryId = 1; queryId <= 5; queryId++) {
-            System.out.println("Processing query " + queryId);
-
-            // Obtain a CSI ranking of documents and a list of corresponding sources
-            List<ScoredEntity<String>> csiDocs = csiSearcher.search(Integer.toString(queryId));
-            List<Resource> resources = getResources(csiDocs, doc2resource);
-
-            double documentScore = selection.getDocumentScore(csiDocs, resources);
-
-            System.out.println("\tResource ranking: " + documentScore);
-        }
+//        if (csiSearcher == null) {
+//            throw new NullPointerException("The CSI searcher is null.");
+//        }
+//        if (doc2resource == null) {
+//            throw new NullPointerException("The mapping between documents and resources is null.");
+//        }
+//
+//        // Process queries (assumes that there are 5 queries with ids from 1 to 5)
+//        for (int queryId = 1; queryId <= 5; queryId++) {
+//            System.out.println("Processing query " + queryId);
+//
+//            // Obtain a CSI ranking of documents and a list of corresponding sources
+//            List<ScoredEntity<String>> csiDocs = csiSearcher.search(Integer.toString(queryId));
+//            List<Resource> resources = getResources(csiDocs, doc2resource);
+//
+//            double documentScore = selection.getDocumentScore(csiDocs, resources);
+//
+//            System.out.println("\tResource ranking: " + documentScore);
+//        }
     }
 
     /**

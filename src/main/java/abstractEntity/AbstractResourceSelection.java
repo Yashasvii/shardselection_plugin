@@ -1,8 +1,15 @@
 package abstractEntity;
 
+import evaluations.FileSearcher;
+import helperClasses.CORINormalization;
 import helperClasses.MinMax;
+import helperClasses.ScoreNormalization;
 import utils.ScoredEntity;
 
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileReader;
+import java.io.IOException;
 import java.util.*;
 
 /**
@@ -78,9 +85,34 @@ public abstract class AbstractResourceSelection implements ResourceSelection {
     }
 
     @Override
-    public <T> double getDocumentScore(List<ScoredEntity<T>> documents, List<Resource> resources) {
+    public <T> double getDocumentScore(int csiTopN) {
 
-        List<ScoredEntity<Resource>> scoredResources = select(documents, resources);
+
+        File csiResultsFile = new File("data/csi_result");
+
+        File doc2resourceFile = new File("data/doc2resource");
+
+        setCompleteRankCutoff(1000);
+
+        ScoreNormalization normalization = new CORINormalization();
+        ScoreNormalization baseNormalization = new MinMax();
+
+        ((CORINormalization) normalization).setNormalization(baseNormalization);
+
+        ((CORINormalization) normalization).setLambda(0.4);
+
+        FileSearcher csiSearcher = new FileSearcher(csiResultsFile, csiTopN);
+
+        List<Resource> resources = getResources();
+
+        Map<String, Resource> doc2resource = getDoc2Resource(doc2resourceFile, resources);
+
+        List<ScoredEntity<String>> csiDocs = csiSearcher.search(Integer.toString(1));
+
+        List<Resource> updateResources = getResources(csiDocs, doc2resource);
+
+
+        List<ScoredEntity<Resource>> scoredResources = select(csiDocs, updateResources);
         List<ScoredEntity<Resource>> normResources = new MinMax().normalize(scoredResources);
 
         double score = 0.00;
@@ -89,6 +121,80 @@ public abstract class AbstractResourceSelection implements ResourceSelection {
         }
         return getScoreByFactor(score + getInitialThreshold(),3) ;
     }
+
+    private List<Resource> getResources(List<ScoredEntity<String>> documents,
+                                        Map<String, Resource> doc2resource) {
+        List<Resource> resources = new ArrayList<Resource>(documents.size());
+        List<ScoredEntity<String>> filteredDocs = new ArrayList<ScoredEntity<String>>(documents.size());
+        filteredDocs.addAll(documents);
+
+        for (ScoredEntity<String> document : documents) {
+            Resource resource = doc2resource.get(document.getEntity());
+            if (resource == null) {
+                filteredDocs.remove(document);
+            } else {
+                resources.add(resource);
+            }
+        }
+
+        documents.clear();
+        documents.addAll(filteredDocs);
+
+        return resources;
+    }
+
+
+    private static List<Resource> getResources() {
+        List<Resource> resources = new ArrayList<Resource>(4);
+        Random random = new Random(42);
+        for (int i = 1; i <= 4; i++) {
+            String resourceId = Integer.toString(i);
+            int fullSize = random.nextInt(100000);
+            int sampleSize = random.nextInt(1000);
+            Resource resource = new Resource(resourceId, fullSize, sampleSize);
+            resources.add(resource);
+        }
+        return resources;
+    }
+
+    /**
+     * Returns a mapping between CSI documents and their corresponding resources.
+     */
+    private static Map<String, Resource> getDoc2Resource(File doc2resourceFile,
+                                                         List<Resource> resources) {
+        Map<String, Resource> doc2resource = new HashMap<String, Resource>();
+
+        try {
+            BufferedReader reader = null;
+            try {
+                reader = new BufferedReader(new FileReader(doc2resourceFile));
+                while (reader.ready()) {
+                    String line = reader.readLine();
+                    StringTokenizer tokenizer = new StringTokenizer(line);
+
+                    String document = tokenizer.nextToken();
+                    String resourceId = tokenizer.nextToken();
+
+                    Resource resource = null;
+                    for (Resource res : resources) {
+                        if (resourceId.equals(res.getResourceId())) {
+                            resource = res;
+                            break;
+                        }
+                    }
+                    doc2resource.put(document, resource);
+                }
+            } finally {
+                if (reader != null) reader.close();
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        return doc2resource;
+    }
+
+
 
     public double getScoreByFactor(double score, int factor) {
         return score * factor;
