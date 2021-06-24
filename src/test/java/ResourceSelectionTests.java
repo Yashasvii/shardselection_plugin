@@ -78,7 +78,7 @@ public class ResourceSelectionTests {
 
     @Test
     public void testScoredResourcesEqualInputResources() {
-        List<ScoredEntity<Resource>> scoredResources = selection.select(documents, resources);
+        List<ScoredEntity<Resource>> scoredResources = selection.select(documents, resources, 200);
 
         Set<Resource> actualResources = new HashSet<Resource>();
         for (ScoredEntity<Resource> scoredResource : scoredResources) {
@@ -98,7 +98,7 @@ public class ResourceSelectionTests {
      */
     @Test
     public void testDescendingSorting() {
-        List<ScoredEntity<Resource>> scoredResources = selection.select(documents, resources);
+        List<ScoredEntity<Resource>> scoredResources = selection.select(documents, resources, 200);
 
         System.out.println("Class to test: " + selection.getClass().getName());
         System.out.println("Ranking of resources: " + scoredResources);
@@ -114,7 +114,7 @@ public class ResourceSelectionTests {
      */
     @Test
     public void testValidScores() {
-        List<ScoredEntity<Resource>> scoredResources = selection.select(documents, resources);
+        List<ScoredEntity<Resource>> scoredResources = selection.select(documents, resources, 200);
 
         double scoreSum = 0;
         for (ScoredEntity<Resource> scoredResource : scoredResources) {
@@ -128,11 +128,11 @@ public class ResourceSelectionTests {
 
     @Test(expected = IllegalArgumentException.class)
     public void testDifferentLengthInput() {
-        selection.select(documents, uniqueResources);
+        selection.select(documents, uniqueResources, 200);
     }
 
     @Test(expected = NullPointerException.class)
     public void testNullInput() {
-        selection.select(null, resources);
+        selection.select(null, resources, 200);
     }
 }

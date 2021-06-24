@@ -54,7 +54,7 @@ public abstract class AbstractResourceSelection implements ResourceSelection {
 
     @Override
     public <T> List<ScoredEntity<Resource>> select(
-            List<ScoredEntity<T>> documents, List<Resource> resources) {
+            List<ScoredEntity<T>> documents, List<Resource> resources, int cskTopN) {
         if (documents == null) {
             throw new NullPointerException("The list of scored documents is null.");
         }
@@ -76,7 +76,9 @@ public abstract class AbstractResourceSelection implements ResourceSelection {
             sort(sortedDocuments, sortedResources);
         }
 
-        Map<Resource, Double> resource2score = getResourceScores(sortedDocuments, sortedResources);
+        // own implementation
+        Map<Resource, Double> resource2score = getResourceScores(sortedDocuments, sortedResources, cskTopN );
+
         List<ScoredEntity<Resource>> scoredResources = getScoredResourceList(resource2score);
         scoredResources = ScoredEntity.sort(scoredResources, false);
         addZeroScoredResources(sortedResources, scoredResources);
@@ -84,13 +86,16 @@ public abstract class AbstractResourceSelection implements ResourceSelection {
         return scoredResources;
     }
 
+
+
+
     @Override
     public <T> double getDocumentScore(int csiTopN) {
 
 
-        File csiResultsFile = new File("data/csi_result");
+        File csiResultsFile = new File("/home/yashasvi/Development/thesis/ShardSelection/data/csi_result");
 
-        File doc2resourceFile = new File("data/doc2resource");
+        File doc2resourceFile = new File("/home/yashasvi/Development/thesis/ShardSelection/data/doc2resource");
 
         setCompleteRankCutoff(1000);
 
@@ -111,8 +116,7 @@ public abstract class AbstractResourceSelection implements ResourceSelection {
 
         List<Resource> updateResources = getResources(csiDocs, doc2resource);
 
-
-        List<ScoredEntity<Resource>> scoredResources = select(csiDocs, updateResources);
+        List<ScoredEntity<Resource>> scoredResources = select(csiDocs, updateResources, csiTopN);
         List<ScoredEntity<Resource>> normResources = new MinMax().normalize(scoredResources);
 
         double score = 0.00;
@@ -141,6 +145,25 @@ public abstract class AbstractResourceSelection implements ResourceSelection {
         documents.addAll(filteredDocs);
 
         return resources;
+    }
+
+    public void analysisData(int cskTop) {
+
+        if(cskTop < 20) {
+            cskTop = cskTop *10;
+        }
+        else if(cskTop > 200) {
+            cskTop = cskTop/10;
+        }
+        try
+        {
+            Thread.sleep(cskTop);
+        }
+        catch(InterruptedException ex)
+        {
+            Thread.currentThread().interrupt();
+        }
+
     }
 
 
@@ -223,7 +246,7 @@ public abstract class AbstractResourceSelection implements ResourceSelection {
      * @return The mapping between resources and their scores.
      */
     protected abstract <T> Map<Resource, Double> getResourceScores(
-            List<ScoredEntity<T>> documents, List<Resource> resources);
+            List<ScoredEntity<T>> documents, List<Resource> resources, int cskTopN);
 
     /**
      * Checks if a given list of scored documents

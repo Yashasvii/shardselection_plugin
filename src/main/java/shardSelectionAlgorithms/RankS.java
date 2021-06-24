@@ -20,7 +20,7 @@ public class RankS extends AbstractResourceSelection implements RanKSInterface {
 
 
     @Override
-    protected <T> Map<Resource, Double> getResourceScores(List<ScoredEntity<T>> documents, List<Resource> resources) {
+    protected <T> Map<Resource, Double> getResourceScores(List<ScoredEntity<T>> documents, List<Resource> resources,  int cskTopN) {
 
         Map<Resource, Double> resourceScores = new HashMap<Resource, Double>();
 
@@ -35,6 +35,8 @@ public class RankS extends AbstractResourceSelection implements RanKSInterface {
 
             resourceScores.put(resource, score);
         }
+
+        analysisData(cskTopN);
 
         for (Resource resource : resourceScores.keySet()) {
             double score = resourceScores.get(resource) * resource.getSize() / resource.getSampleSize();

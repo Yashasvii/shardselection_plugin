@@ -1,15 +1,9 @@
 package evaluations;
 
-import abstractEntity.AbstractResourceSelection;
 import abstractEntity.Resource;
 import abstractEntity.ResourceSelection;
-import helperClasses.CORINormalization;
-import helperClasses.MinMax;
 import helperClasses.ScoreNormalization;
 import shardSelectionAlgorithms.HybridShardSelectionAlgorithm;
-import shardSelectionAlgorithms.RankS;
-import shardSelectionAlgorithms.ReDDE;
-import shardSelectionAlgorithms.Sushi;
 import utils.ScoredEntity;
 
 import java.io.BufferedReader;

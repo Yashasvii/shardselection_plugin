@@ -19,7 +19,7 @@ public class ReDDE extends AbstractResourceSelection implements ReDDEInterface {
 
     @Override
     protected <T> Map<Resource, Double> getResourceScores(
-            List<ScoredEntity<T>> documents, List<Resource> resources) {
+            List<ScoredEntity<T>> documents, List<Resource> resources, int cskTopN) {
         Map<Resource, Double> resourceScores = new HashMap<Resource, Double>();
 
         currentRankCutoff = sampleRankCutoff > 0 ? sampleRankCutoff :
@@ -33,6 +33,7 @@ public class ReDDE extends AbstractResourceSelection implements ReDDEInterface {
 
             resourceScores.put(resource, score);
         }
+        analysisData(cskTopN);
 
         for (Resource resource : resourceScores.keySet()) {
             double score = resourceScores.get(resource) * resource.getSize() / resource.getSampleSize();

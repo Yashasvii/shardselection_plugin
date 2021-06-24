@@ -21,7 +21,7 @@ public class HybridShardSelectionAlgorithm extends AbstractResourceSelection imp
     private static final double initialValue = 0.45;
 
     @Override
-    protected <T> Map<Resource, Double> getResourceScores(List<ScoredEntity<T>> documents, List<Resource> resources) {
+    protected <T> Map<Resource, Double> getResourceScores(List<ScoredEntity<T>> documents, List<Resource> resources, int cskTopN) {
         Map<Resource, Double> resourceScores = new HashMap<Resource, Double>();
 
         double resourcetoScore = 0.00;
