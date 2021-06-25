@@ -147,16 +147,13 @@ public abstract class AbstractResourceSelection implements ResourceSelection {
     }
 
     @Override
-    public <T> Map<String, Object> getDocumentResponseScoreAndTime(Boolean executeInCluster, String indexName, Map query) {
+    public <T> Map<String, Object> getDocumentResponseScoreAndTime(String indexName, Map query, Boolean executeInCluster) {
 
 
         try {
             long start = System.currentTimeMillis();
 
             setCompleteRankCutoff(1000);
-
-            ObjectMapper objectMapper = new ObjectMapper();
-            String jsonResp = objectMapper.writeValueAsString(query);
 
             ScoreNormalization normalization = new CORINormalization();
             ScoreNormalization baseNormalization = new MinMax();
@@ -173,7 +170,17 @@ public abstract class AbstractResourceSelection implements ResourceSelection {
 
             File csiResultsFile = new File("/home/yashasvi/Development/thesis/ShardSelection/data/csi_result");
 
-            int csiTopN = getCSINumber(jsonResp);
+            int csiTopN;
+            String jsonResp = null;
+            if(query != null) {
+                ObjectMapper objectMapper = new ObjectMapper();
+                jsonResp = objectMapper.writeValueAsString(query);
+                csiTopN = getCSINumber(jsonResp);
+            }
+
+            else {
+                csiTopN =1000;
+            }
 
             FileSearcher csiSearcher = new FileSearcher(csiResultsFile, csiTopN);
 

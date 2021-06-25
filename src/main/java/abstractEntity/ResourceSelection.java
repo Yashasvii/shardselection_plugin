@@ -14,5 +14,5 @@ public interface ResourceSelection {
     <T> List<ScoredEntity<Resource>> select(List<ScoredEntity<T>> documents,
                                             List<Resource> resources, int cskTopN);
 
-    <T> Map<String, Object> getDocumentResponseScoreAndTime(Boolean executeInCluster, String indexName, Map query);
+    <T> Map<String, Object> getDocumentResponseScoreAndTime(String indexName, Map query, Boolean executeInCluster);
 }
