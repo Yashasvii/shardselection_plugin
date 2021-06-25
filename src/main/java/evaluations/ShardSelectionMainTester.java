@@ -3,7 +3,7 @@ package evaluations;
 import abstractEntity.Resource;
 import abstractEntity.ResourceSelection;
 import helperClasses.ScoreNormalization;
-import shardSelectionAlgorithms.HybridShardSelectionAlgorithm;
+import shardSelectionAlgorithms.Sushi;
 import utils.ScoredEntity;
 
 import java.io.BufferedReader;
@@ -67,10 +67,10 @@ public class ShardSelectionMainTester {
 //        }
 
         // Initialize resource selection
-     // ResourceSelection selection = new ReDDE();
-       //ResourceSelection selection = new Sushi();
-      //ResourceSelection selection = new RankS();
-      ResourceSelection selection = new HybridShardSelectionAlgorithm();
+        // ResourceSelection selection = new ReDDE();
+        //ResourceSelection selection = new Sushi();
+        //ResourceSelection selection = new RankS();
+        //   ResourceSelection selection = new HybridShardSelectionAlgorithm();
 //        int kParam = 1000;
 //        ((AbstractResourceSelection) selection).setCompleteRankCutoff(kParam);
 //
@@ -93,11 +93,11 @@ public class ShardSelectionMainTester {
 //        ShardSelectionMainTester fileExample = new ShardSelectionMainTester(selection, normalization);
 //        fileExample.run(csiSearcher, resourceSearchers, doc2resource);
 
-           //csiTopN 92 to 5000
-
-            double documentScore = selection.getDocumentScore(5000);
-            System.out.println("documentScore = " + documentScore);
-            System.out.println("--------------------------------------------");
+        //csiTopN 92 to 5000
+        ResourceSelection selection = new Sushi();
+        Map<String, Object> documentScore = selection.getDocumentResponseScoreAndTime(false, null, null);
+        System.out.println("documentScore = " + documentScore);
+        System.out.println("--------------------------------------------");
 
 
     }
@@ -158,6 +158,19 @@ public class ShardSelectionMainTester {
         return doc2resource;
     }
 
+    private static List<Resource> getResources() {
+        List<Resource> resources = new ArrayList<Resource>(4);
+        Random random = new Random(42);
+        for (int i = 1; i <= 4; i++) {
+            String resourceId = Integer.toString(i);
+            int fullSize = random.nextInt(100000);
+            int sampleSize = random.nextInt(1000);
+            Resource resource = new Resource(resourceId, fullSize, sampleSize);
+            resources.add(resource);
+        }
+        return resources;
+    }
+
     /**
      * Runs the example.
      *
@@ -212,19 +225,6 @@ public class ShardSelectionMainTester {
         documents.clear();
         documents.addAll(filteredDocs);
 
-        return resources;
-    }
-
-    private static List<Resource> getResources() {
-        List<Resource> resources = new ArrayList<Resource>(4);
-        Random random = new Random(42);
-        for (int i = 1; i <= 4; i++) {
-            String resourceId = Integer.toString(i);
-            int fullSize = random.nextInt(100000);
-            int sampleSize = random.nextInt(1000);
-            Resource resource = new Resource(resourceId, fullSize, sampleSize);
-            resources.add(resource);
-        }
         return resources;
     }
 }

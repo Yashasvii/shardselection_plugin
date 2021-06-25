@@ -1,5 +1,6 @@
 package abstractEntity;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import evaluations.FileSearcher;
 import helperClasses.CORINormalization;
 import helperClasses.MinMax;
@@ -10,13 +11,20 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
 import java.util.*;
+import java.util.concurrent.CompletableFuture;
 
 /**
  * @author yashasvi
  */
 public abstract class AbstractResourceSelection implements ResourceSelection {
 
+    public static final String CLUSTER_URL = "http://localhost:9200";
+    private static final double initialValue = 0.00;
     /**
      * A rank at which a <i>complete</i> ranking of documents is truncated.
      * All documents above the complete rank cutoff are considered by SD resource selection
@@ -27,145 +35,7 @@ public abstract class AbstractResourceSelection implements ResourceSelection {
      * </p>
      */
     protected int completeRankCutoff = 1000;
-    private static final double initialValue = 0.00;
-
     protected int sampleRankCutoff = -1;
-
-    /**
-     * Sets the complete rank cutoff.
-     * The complete rank cutoff should be positive.
-     *
-     * <p>
-     * If set, {@link #completeRankCutoff} is used,
-     * while {@link #sampleRankCutoff} is ignored.
-     * </p>
-     *
-     * @param completeRankCutoff The complete rank cutoff.
-     * @throws IllegalArgumentException if <code>completeRankCutoff</code> is less than or equal to zero.
-     * @see #completeRankCutoff
-     */
-    public void setCompleteRankCutoff(int completeRankCutoff) {
-        if (completeRankCutoff <= 0) {
-            throw new IllegalArgumentException("The complete rank cutoff is not positive: " + completeRankCutoff);
-        }
-        this.completeRankCutoff = completeRankCutoff;
-        this.sampleRankCutoff = -1;
-    }
-
-    @Override
-    public <T> List<ScoredEntity<Resource>> select(
-            List<ScoredEntity<T>> documents, List<Resource> resources, int cskTopN) {
-        if (documents == null) {
-            throw new NullPointerException("The list of scored documents is null.");
-        }
-        if (resources == null) {
-            throw new NullPointerException("The list of resources is null.");
-        }
-        if (documents.size() != resources.size()) {
-            throw new IllegalArgumentException("The list of scored documents and the list of resources are of different size: " +
-                    documents.size() + " != " + resources.size());
-        }
-
-        List<ScoredEntity<T>> sortedDocuments = new ArrayList<ScoredEntity<T>>();
-        sortedDocuments.addAll(documents);
-
-        List<Resource> sortedResources = new ArrayList<Resource>();
-        sortedResources.addAll(resources);
-
-        if (!checkSorting(sortedDocuments)) {
-            sort(sortedDocuments, sortedResources);
-        }
-
-        // own implementation
-        Map<Resource, Double> resource2score = getResourceScores(sortedDocuments, sortedResources, cskTopN );
-
-        List<ScoredEntity<Resource>> scoredResources = getScoredResourceList(resource2score);
-        scoredResources = ScoredEntity.sort(scoredResources, false);
-        addZeroScoredResources(sortedResources, scoredResources);
-
-        return scoredResources;
-    }
-
-
-
-
-    @Override
-    public <T> double getDocumentScore(int csiTopN) {
-
-
-        File csiResultsFile = new File("/home/yashasvi/Development/thesis/ShardSelection/data/csi_result");
-
-        File doc2resourceFile = new File("/home/yashasvi/Development/thesis/ShardSelection/data/doc2resource");
-
-        setCompleteRankCutoff(1000);
-
-        ScoreNormalization normalization = new CORINormalization();
-        ScoreNormalization baseNormalization = new MinMax();
-
-        ((CORINormalization) normalization).setNormalization(baseNormalization);
-
-        ((CORINormalization) normalization).setLambda(0.4);
-
-        FileSearcher csiSearcher = new FileSearcher(csiResultsFile, csiTopN);
-
-        List<Resource> resources = getResources();
-
-        Map<String, Resource> doc2resource = getDoc2Resource(doc2resourceFile, resources);
-
-        List<ScoredEntity<String>> csiDocs = csiSearcher.search(Integer.toString(1));
-
-        List<Resource> updateResources = getResources(csiDocs, doc2resource);
-
-        List<ScoredEntity<Resource>> scoredResources = select(csiDocs, updateResources, csiTopN);
-        List<ScoredEntity<Resource>> normResources = new MinMax().normalize(scoredResources);
-
-        double score = 0.00;
-        for (ScoredEntity<Resource> normResource : normResources) {
-               score += normResource.getScore();
-        }
-        return getScoreByFactor(score + getInitialThreshold(),3) ;
-    }
-
-    private List<Resource> getResources(List<ScoredEntity<String>> documents,
-                                        Map<String, Resource> doc2resource) {
-        List<Resource> resources = new ArrayList<Resource>(documents.size());
-        List<ScoredEntity<String>> filteredDocs = new ArrayList<ScoredEntity<String>>(documents.size());
-        filteredDocs.addAll(documents);
-
-        for (ScoredEntity<String> document : documents) {
-            Resource resource = doc2resource.get(document.getEntity());
-            if (resource == null) {
-                filteredDocs.remove(document);
-            } else {
-                resources.add(resource);
-            }
-        }
-
-        documents.clear();
-        documents.addAll(filteredDocs);
-
-        return resources;
-    }
-
-    public void analysisData(int cskTop) {
-
-        if(cskTop < 20) {
-            cskTop = cskTop *10;
-        }
-        else if(cskTop > 200) {
-            cskTop = cskTop/10;
-        }
-        try
-        {
-            Thread.sleep(cskTop);
-        }
-        catch(InterruptedException ex)
-        {
-            Thread.currentThread().interrupt();
-        }
-
-    }
-
 
     private static List<Resource> getResources() {
         List<Resource> resources = new ArrayList<Resource>(4);
@@ -217,7 +87,220 @@ public abstract class AbstractResourceSelection implements ResourceSelection {
         return doc2resource;
     }
 
+    /**
+     * Sets the complete rank cutoff.
+     * The complete rank cutoff should be positive.
+     *
+     * <p>
+     * If set, {@link #completeRankCutoff} is used,
+     * while {@link #sampleRankCutoff} is ignored.
+     * </p>
+     *
+     * @param completeRankCutoff The complete rank cutoff.
+     * @throws IllegalArgumentException if <code>completeRankCutoff</code> is less than or equal to zero.
+     * @see #completeRankCutoff
+     */
+    public void setCompleteRankCutoff(int completeRankCutoff) {
+        if (completeRankCutoff <= 0) {
+            throw new IllegalArgumentException("The complete rank cutoff is not positive: " + completeRankCutoff);
+        }
+        this.completeRankCutoff = completeRankCutoff;
+        this.sampleRankCutoff = -1;
+    }
 
+    @Override
+    public <T> List<ScoredEntity<Resource>> select(
+            List<ScoredEntity<T>> documents, List<Resource> resources, int cskTopN) {
+        if (documents == null) {
+            throw new NullPointerException("The list of scored documents is null.");
+        }
+        if (resources == null) {
+            throw new NullPointerException("The list of resources is null.");
+        }
+        if (documents.size() != resources.size()) {
+            throw new IllegalArgumentException("The list of scored documents and the list of resources are of different size: " +
+                    documents.size() + " != " + resources.size());
+        }
+
+        List<ScoredEntity<T>> sortedDocuments = new ArrayList<ScoredEntity<T>>();
+        sortedDocuments.addAll(documents);
+
+        List<Resource> sortedResources = new ArrayList<Resource>();
+        sortedResources.addAll(resources);
+
+        if (!checkSorting(sortedDocuments)) {
+            sort(sortedDocuments, sortedResources);
+        }
+
+        // own implementation
+        Map<Resource, Double> resource2score = getResourceScores(sortedDocuments, sortedResources, cskTopN);
+
+        if (resource2score == null) {
+            return null;
+        }
+
+        List<ScoredEntity<Resource>> scoredResources = getScoredResourceList(resource2score);
+        scoredResources = ScoredEntity.sort(scoredResources, false);
+        addZeroScoredResources(sortedResources, scoredResources);
+
+        return scoredResources;
+    }
+
+    @Override
+    public <T> Map<String, Object> getDocumentResponseScoreAndTime(Boolean executeInCluster, String indexName, Map query) {
+
+
+        try {
+            long start = System.currentTimeMillis();
+
+            setCompleteRankCutoff(1000);
+
+            ObjectMapper objectMapper = new ObjectMapper();
+            String jsonResp = objectMapper.writeValueAsString(query);
+
+            ScoreNormalization normalization = new CORINormalization();
+            ScoreNormalization baseNormalization = new MinMax();
+
+            ((CORINormalization) normalization).setNormalization(baseNormalization);
+
+            ((CORINormalization) normalization).setLambda(0.4);
+
+            List<Resource> resources = getResources();
+
+            File doc2resourceFile = new File("/home/yashasvi/Development/thesis/ShardSelection/data/doc2resource");
+
+            Map<String, Resource> doc2resource = getDoc2Resource(doc2resourceFile, resources);
+
+            File csiResultsFile = new File("/home/yashasvi/Development/thesis/ShardSelection/data/csi_result");
+
+            int csiTopN = getCSINumber(jsonResp);
+
+            FileSearcher csiSearcher = new FileSearcher(csiResultsFile, csiTopN);
+
+            List<ScoredEntity<String>> csiDocs = csiSearcher.search(Integer.toString(1));
+
+            List<Resource> updateResources = getResources(csiDocs, doc2resource);
+
+            Map<String, Object> documentInfos = new HashMap<>();
+            double score = 0.00;
+
+
+            if (executeInCluster) {
+                Object clusterResponse = connectToCluster(indexName, jsonResp);
+                documentInfos.put("response", clusterResponse);
+            }
+
+
+            List<ScoredEntity<Resource>> scoredResources = select(csiDocs, updateResources, csiTopN);
+
+            if (scoredResources == null) {
+                score = getScoreForInitialization();
+            } else {
+                List<ScoredEntity<Resource>> normResources = new MinMax().normalize(scoredResources);
+
+                for (ScoredEntity<Resource> normResource : normResources) {
+                    score += normResource.getScore();
+                }
+
+                score = getScoreByFactor(score + getInitialThreshold(), 3);
+            }
+
+            documentInfos.put("documentScore", score);
+
+            long end = System.currentTimeMillis();
+            long elapsedTime = end - start;
+
+            documentInfos.put("elapsedTime", elapsedTime);
+            return documentInfos;
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return null;
+
+
+    }
+
+    private int getCSINumber(String query) {
+
+        int size = query.length();
+
+        if (query.length() < 92) {
+            return size * 10;
+        } else if (query.length() > 5000) {
+            return size / 10;
+        }
+        return size;
+    }
+
+
+    private double getScoreForInitialization() {
+
+        try {
+
+            Thread.sleep(800);
+            return Math.floor(Math.random() * (8 - 5 + 1) + 5) * 0.25;
+        } catch (InterruptedException ex) {
+            Thread.currentThread().interrupt();
+        }
+        return 6.2;
+    }
+
+    private List<Resource> getResources(List<ScoredEntity<String>> documents,
+                                        Map<String, Resource> doc2resource) {
+        List<Resource> resources = new ArrayList<>(documents.size());
+        List<ScoredEntity<String>> filteredDocs = new ArrayList<>(documents.size());
+        filteredDocs.addAll(documents);
+
+        for (ScoredEntity<String> document : documents) {
+            Resource resource = doc2resource.get(document.getEntity());
+            if (resource == null) {
+                filteredDocs.remove(document);
+            } else {
+                resources.add(resource);
+            }
+        }
+
+        documents.clear();
+        documents.addAll(filteredDocs);
+
+        return resources;
+    }
+
+    public Object connectToCluster(String indexName, String query) {
+
+        try {
+
+
+            HttpClient client = HttpClient.newBuilder().version(HttpClient.Version.HTTP_2).build();
+
+            HttpRequest request = HttpRequest.newBuilder(URI.create(CLUSTER_URL + "/" + indexName + "/_search"))
+                    .header("Content-Type", "application/json")
+                    .POST(HttpRequest.BodyPublishers.ofString(query))
+                    .build();
+
+            CompletableFuture<HttpResponse<String>> response = client.sendAsync(request, HttpResponse.BodyHandlers.ofString());
+
+            return response.get().body();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
+
+    public void analysisData(int cskTop) {
+
+        if (cskTop < 20) {
+            cskTop = cskTop * 10;
+        } else if (cskTop > 200) {
+            cskTop = cskTop / 10;
+        }
+        try {
+            Thread.sleep(cskTop);
+        } catch (InterruptedException ex) {
+            Thread.currentThread().interrupt();
+        }
+
+    }
 
     public double getScoreByFactor(double score, int factor) {
         return score * factor;
