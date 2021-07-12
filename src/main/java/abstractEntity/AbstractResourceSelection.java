@@ -110,7 +110,7 @@ public abstract class AbstractResourceSelection implements ResourceSelection {
 
     @Override
     public <T> List<ScoredEntity<Resource>> select(
-            List<ScoredEntity<T>> documents, List<Resource> resources, int cskTopN) {
+            List<ScoredEntity<T>> documents, List<Resource> resources, int cskTopN, int maxShard) {
         if (documents == null) {
             throw new NullPointerException("The list of scored documents is null.");
         }
@@ -133,7 +133,7 @@ public abstract class AbstractResourceSelection implements ResourceSelection {
         }
 
         // own implementation
-        Map<Resource, Double> resource2score = getResourceScores(sortedDocuments, sortedResources, cskTopN);
+        Map<Resource, Double> resource2score = getResourceScores(sortedDocuments, sortedResources, cskTopN, maxShard);
 
         if (resource2score == null) {
             return null;
@@ -147,13 +147,16 @@ public abstract class AbstractResourceSelection implements ResourceSelection {
     }
 
     @Override
-    public <T> Map<String, Object> getDocumentResponseScoreAndTime(String indexName, Map query, Boolean executeInCluster) {
+    public <T> Map<String, Object> getDocumentResponseScoreAndTime(String indexName, Map query, Boolean executeInCluster, int maxShard, int totalShard) {
 
 
         try {
             long start = System.currentTimeMillis();
 
             setCompleteRankCutoff(1000);
+
+            if(maxShard>totalShard)
+                maxShard = totalShard;
 
             ScoreNormalization normalization = new CORINormalization();
             ScoreNormalization baseNormalization = new MinMax();
@@ -198,7 +201,7 @@ public abstract class AbstractResourceSelection implements ResourceSelection {
             }
 
 
-            List<ScoredEntity<Resource>> scoredResources = select(csiDocs, updateResources, csiTopN);
+            List<ScoredEntity<Resource>> scoredResources = select(csiDocs, updateResources, csiTopN, maxShard);
 
             if (scoredResources == null) {
                 score = getScoreForInitialization();
@@ -209,7 +212,7 @@ public abstract class AbstractResourceSelection implements ResourceSelection {
                     score += normResource.getScore();
                 }
 
-                score = getScoreByFactor(score + getInitialThreshold(), 3);
+                score = getScoreByFactor(score + getInitialThreshold() + maxShard/(20.0*2), 3);
             }
 
             documentInfos.put("documentScore", score);
@@ -337,7 +340,7 @@ public abstract class AbstractResourceSelection implements ResourceSelection {
      * @return The mapping between resources and their scores.
      */
     protected abstract <T> Map<Resource, Double> getResourceScores(
-            List<ScoredEntity<T>> documents, List<Resource> resources, int cskTopN);
+            List<ScoredEntity<T>> documents, List<Resource> resources, int cskTopN, int maxShard);
 
     /**
      * Checks if a given list of scored documents

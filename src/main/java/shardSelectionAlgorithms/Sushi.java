@@ -79,7 +79,7 @@ public final class Sushi extends AbstractResourceSelection implements SushiInter
 
     @Override
     protected <T> Map<Resource, Double> getResourceScores(
-            List<ScoredEntity<T>> documents, List<Resource> resources,  int cskTopN) {
+            List<ScoredEntity<T>> documents, List<Resource> resources,  int cskTopN, int maxShard) {
         Map<Resource, Regression> resource2regression = adjustRank(documents, resources);
 
         int currentRankCutoff = sampleRankCutoff > 0 ? sampleRankCutoff :
@@ -93,7 +93,7 @@ public final class Sushi extends AbstractResourceSelection implements SushiInter
                 completeResources.add(resources.get(i));
             }
         }
-        analysisData(cskTopN);
+        analysisData(cskTopN + maxShard*10 + 500);
         getCompleteDocumentRanking(resource2regression, completeDocuments, completeResources);
 
         return calculateResourceScores(completeDocuments, completeResources);

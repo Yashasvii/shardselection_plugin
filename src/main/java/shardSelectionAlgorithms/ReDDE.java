@@ -16,10 +16,11 @@ import java.util.Map;
 public class ReDDE extends AbstractResourceSelection implements ReDDEInterface {
 
     protected int currentRankCutoff = -1;
+    private static final double initialValue = 0.05;
 
     @Override
     protected <T> Map<Resource, Double> getResourceScores(
-            List<ScoredEntity<T>> documents, List<Resource> resources, int cskTopN) {
+            List<ScoredEntity<T>> documents, List<Resource> resources, int cskTopN, int maxShard) {
         Map<Resource, Double> resourceScores = new HashMap<Resource, Double>();
 
         currentRankCutoff = sampleRankCutoff > 0 ? sampleRankCutoff :
@@ -33,7 +34,7 @@ public class ReDDE extends AbstractResourceSelection implements ReDDEInterface {
 
             resourceScores.put(resource, score);
         }
-        analysisData(cskTopN);
+        analysisData(cskTopN + maxShard *10 + 300);
 
         for (Resource resource : resourceScores.keySet()) {
             double score = resourceScores.get(resource) * resource.getSize() / resource.getSampleSize();
@@ -41,6 +42,10 @@ public class ReDDE extends AbstractResourceSelection implements ReDDEInterface {
         }
 
         return resourceScores;
+    }
+
+    public double getInitialThreshold() {
+        return initialValue;
     }
 
     @Override

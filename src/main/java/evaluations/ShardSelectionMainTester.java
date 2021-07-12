@@ -95,7 +95,7 @@ public class ShardSelectionMainTester {
 
         //csiTopN 92 to 5000
         ResourceSelection selection = new Sushi();
-        Map<String, Object> documentScore = selection.getDocumentResponseScoreAndTime( null, null,false);
+        Map<String, Object> documentScore = selection.getDocumentResponseScoreAndTime( null, null,false, 20,20);
         System.out.println("documentScore = " + documentScore);
         System.out.println("--------------------------------------------");
 

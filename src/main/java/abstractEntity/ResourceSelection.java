@@ -12,7 +12,7 @@ import java.util.Map;
 public interface ResourceSelection {
 
     <T> List<ScoredEntity<Resource>> select(List<ScoredEntity<T>> documents,
-                                            List<Resource> resources, int cskTopN);
+                                            List<Resource> resources, int cskTopN, int maxShard);
 
-    <T> Map<String, Object> getDocumentResponseScoreAndTime(String indexName, Map query, Boolean executeInCluster);
+    <T> Map<String, Object> getDocumentResponseScoreAndTime(String indexName, Map query, Boolean executeInCluster, int maxShard, int totalShard);
 }

@@ -20,8 +20,9 @@ public class HybridShardSelectionAlgorithm extends AbstractResourceSelection imp
     private static final int  rankThreshold = 1000;
     private static final double initialValue = 0.45;
 
+
     @Override
-    protected <T> Map<Resource, Double> getResourceScores(List<ScoredEntity<T>> documents, List<Resource> resources, int cskTopN) {
+    protected <T> Map<Resource, Double> getResourceScores(List<ScoredEntity<T>> documents, List<Resource> resources, int cskTopN, int maxShard) {
         Map<Resource, Double> resourceScores = new HashMap<Resource, Double>();
 
         double resourcetoScore = 0.00;
@@ -45,6 +46,8 @@ public class HybridShardSelectionAlgorithm extends AbstractResourceSelection imp
             score += getRankVoting(documents.get(i).getScore());  //From RankS
             resourceScores.put(resource, score+resourcetoScore);
         }
+
+        analysisData(cskTopN+maxShard *10);
 
         for (Resource resource : resourceScores.keySet()) {
             double score = resourceScores.get(resource) * resource.getSize() / resource.getSampleSize();

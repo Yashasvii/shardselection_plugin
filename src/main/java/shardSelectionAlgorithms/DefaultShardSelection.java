@@ -13,7 +13,7 @@ import java.util.Map;
 public class DefaultShardSelection extends AbstractResourceSelection {
 
     @Override
-    protected <T> Map<Resource, Double> getResourceScores(List<ScoredEntity<T>> documents, List<Resource> resources, int cskTopN) {
+    protected <T> Map<Resource, Double> getResourceScores(List<ScoredEntity<T>> documents, List<Resource> resources, int cskTopN,int maxShard) {
         return null;
     }
 
