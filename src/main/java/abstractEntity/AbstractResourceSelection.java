@@ -23,7 +23,7 @@ import java.util.concurrent.CompletableFuture;
  */
 public abstract class AbstractResourceSelection implements ResourceSelection {
 
-    public static final String CLUSTER_URL = "http://localhost:9200";
+    public static final String CLUSTER_URL = "https://search-shardselection-dbb63tweowhguzojwnoarjulrq.ap-south-1.es.amazonaws.com/";
     private static final double initialValue = 0.00;
     /**
      * A rank at which a <i>complete</i> ranking of documents is truncated.
@@ -280,8 +280,9 @@ public abstract class AbstractResourceSelection implements ResourceSelection {
 
             HttpClient client = HttpClient.newBuilder().version(HttpClient.Version.HTTP_2).build();
 
-            HttpRequest request = HttpRequest.newBuilder(URI.create(CLUSTER_URL + "/" + indexName + "/_search"))
+            HttpRequest request = HttpRequest.newBuilder(URI.create(CLUSTER_URL  + indexName + "/_search"))
                     .header("Content-Type", "application/json")
+                    .header("authorization", "Basic dGVzdDp0ZXN0c2hhcmQxQUA=")
                     .POST(HttpRequest.BodyPublishers.ofString(query))
                     .build();
 
