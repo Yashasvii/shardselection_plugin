@@ -24,7 +24,7 @@ import java.util.concurrent.CompletableFuture;
 public abstract class AbstractResourceSelection implements ResourceSelection {
 
     public static final String CLUSTER_URL = "https://search-shardselection-dbb63tweowhguzojwnoarjulrq.ap-south-1.es.amazonaws.com/";
-    private static final double initialValue = 2.254;
+    private static final double initialValue = -0.751;
     /**
      * A rank at which a <i>complete</i> ranking of documents is truncated.
      * All documents above the complete rank cutoff are considered by SD resource selection
