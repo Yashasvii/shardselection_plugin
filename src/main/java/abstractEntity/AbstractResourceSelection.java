@@ -147,7 +147,7 @@ public abstract class AbstractResourceSelection implements ResourceSelection {
     }
 
     @Override
-    public <T> Map<String, Object> getDocumentResponseScoreAndTime(String indexName, Map query, Boolean executeInCluster, int maxShard, int totalShard) {
+    public <T> Map<String, Object> getDocumentResponseScoreAndTime(String indexName, Map query, Boolean executeInCluster, int maxShard, int totalShard, int alpha) {
 
 
         try {
@@ -201,7 +201,7 @@ public abstract class AbstractResourceSelection implements ResourceSelection {
             }
 
 
-            List<ScoredEntity<Resource>> scoredResources = select(csiDocs, updateResources, csiTopN, maxShard);
+            List<ScoredEntity<Resource>> scoredResources = select(csiDocs, updateResources, csiTopN, maxShard + alpha/20);
 
             if (scoredResources == null) {
                 score = getScoreForInitialization();
@@ -212,7 +212,13 @@ public abstract class AbstractResourceSelection implements ResourceSelection {
                     score += normResource.getScore();
                 }
 
-                score = getScoreByFactor(score + getInitialThreshold() + maxShard/(20.0*2), 3);
+                if(alpha > 100)
+                    alpha =100;
+                if(maxShard == 0)
+                    throw  new Exception("MaxShard is zero");
+                if(alpha == 0)
+                    throw  new Exception("Alpha is zero");
+                score = getScoreByFactor(score + getInitialThreshold() + (maxShard+alpha/20.0)/(20.0*2), 3);
             }
 
             documentInfos.put("documentScore", score);
