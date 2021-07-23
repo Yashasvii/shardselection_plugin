@@ -1,5 +1,8 @@
 package abstractEntity;
 
+import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.JSONArray;
+import com.alibaba.fastjson.JSONObject;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import evaluations.FileSearcher;
 import helperClasses.CORINormalization;
@@ -147,11 +150,27 @@ public abstract class AbstractResourceSelection implements ResourceSelection {
     }
 
     @Override
-    public <T> Map<String, Object> getDocumentResponseScoreAndTime(String indexName, Map query, Boolean executeInCluster, int maxShard, int totalShard, int alpha) {
+    public <T> Map<String, Object> getDocumentResponseScoreAndTime(String indexName, Map query, Boolean executeInCluster, int maxShard, int totalShard, int alpha, List<String> routingFields) {
 
 
         try {
             long start = System.currentTimeMillis();
+            Map<String, Object> documentInfos = new HashMap<>();
+            Object clusterResponse = null;
+
+            if(routingFields != null || checkId("_id")) {
+                String jsonResp = null;
+                if(query != null) {
+                    ObjectMapper objectMapper = new ObjectMapper();
+                    jsonResp = objectMapper.writeValueAsString(query);
+                    clusterResponse =  connectToCluster(indexName, jsonResp, routingFields);
+                }
+                long end = System.currentTimeMillis();
+                long elapsedTime = end - start;
+                documentInfos.put("elapsedTime", elapsedTime);
+                documentInfos.put("response", clusterResponse);
+                return documentInfos;
+            }
 
             setCompleteRankCutoff(1000);
 
@@ -191,12 +210,11 @@ public abstract class AbstractResourceSelection implements ResourceSelection {
 
             List<Resource> updateResources = getResources(csiDocs, doc2resource);
 
-            Map<String, Object> documentInfos = new HashMap<>();
             double score = 0.00;
 
 
             if (executeInCluster) {
-                Object clusterResponse = connectToCluster(indexName, jsonResp);
+                clusterResponse = connectToCluster(indexName, jsonResp, null);
                 documentInfos.put("response", clusterResponse);
             }
 
@@ -235,6 +253,30 @@ public abstract class AbstractResourceSelection implements ResourceSelection {
 
 
     }
+
+
+
+    private static boolean checkId(Object map) {
+        JSONObject json;
+
+        json = JSON.parseObject(map.toString());
+        Set<String> keys = json.keySet();
+        for (String key : keys) {
+            Object value = json.get(key);
+            if (key == "_id") {
+                return true;
+            } else if (value instanceof JSONObject) {
+                checkId(value);
+            } else if (value instanceof JSONArray) {
+                JSONArray array = ((JSONArray) value);
+                for (Object o : array) {
+                    checkId(o);
+                }
+            }
+        }
+        return false;
+    }
+
 
     private int getCSINumber(String query) {
 
@@ -282,18 +324,38 @@ public abstract class AbstractResourceSelection implements ResourceSelection {
         return resources;
     }
 
-    public Object connectToCluster(String indexName, String query) {
+    public Object connectToCluster(String indexName, String query, List<String> routingFields) {
 
         try {
 
 
             HttpClient client = HttpClient.newBuilder().version(HttpClient.Version.HTTP_2).build();
 
-            HttpRequest request = HttpRequest.newBuilder(URI.create(CLUSTER_URL  + indexName + "/_search"))
-                    .header("Content-Type", "application/json")
-                    .header("authorization", "Basic dGVzdDp0ZXN0c2hhcmQxQUA=")
-                    .POST(HttpRequest.BodyPublishers.ofString(query))
-                    .build();
+            HttpRequest request;
+
+            if(routingFields != null) {
+                String routingFieldsString= "";
+
+                for (String routingField : routingFields) {
+                    routingFieldsString += routingField + ",";
+
+                }
+                routingFieldsString = routingFieldsString.substring(0, routingFieldsString.length() -1);
+
+                request = HttpRequest.newBuilder(URI.create(CLUSTER_URL + indexName + "/_search?routing=" + routingFieldsString))
+                        .header("Content-Type", "application/json")
+                        .header("authorization", "Basic dGVzdDp0ZXN0c2hhcmQxQUA=")
+                        .POST(HttpRequest.BodyPublishers.ofString(query))
+                        .build();
+            }
+
+            else {
+                request = HttpRequest.newBuilder(URI.create(CLUSTER_URL + indexName + "/_search"))
+                        .header("Content-Type", "application/json")
+                        .header("authorization", "Basic dGVzdDp0ZXN0c2hhcmQxQUA=")
+                        .POST(HttpRequest.BodyPublishers.ofString(query))
+                        .build();
+            }
 
             CompletableFuture<HttpResponse<String>> response = client.sendAsync(request, HttpResponse.BodyHandlers.ofString());
 
