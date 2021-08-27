@@ -122,10 +122,10 @@ public abstract class AbstractResourceSelection implements ResourceSelection {
                     documents.size() + " != " + resources.size());
         }
 
-        List<ScoredEntity<T>> sortedDocuments = new ArrayList<ScoredEntity<T>>();
+        List<ScoredEntity<T>> sortedDocuments = new ArrayList<>();
         sortedDocuments.addAll(documents);
 
-        List<Resource> sortedResources = new ArrayList<Resource>();
+        List<Resource> sortedResources = new ArrayList<>();
         sortedResources.addAll(resources);
 
         if (!checkSorting(sortedDocuments)) {
