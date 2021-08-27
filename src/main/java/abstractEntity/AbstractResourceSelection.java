@@ -1,8 +1,5 @@
 package abstractEntity;
 
-import com.alibaba.fastjson.JSON;
-import com.alibaba.fastjson.JSONArray;
-import com.alibaba.fastjson.JSONObject;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import evaluations.FileSearcher;
 import helperClasses.CORINormalization;
@@ -26,7 +23,7 @@ import java.util.concurrent.CompletableFuture;
  */
 public abstract class AbstractResourceSelection implements ResourceSelection {
 
-    public static final String CLUSTER_URL = "https://search-shardselection-dbb63tweowhguzojwnoarjulrq.ap-south-1.es.amazonaws.com/";
+    public static final String CLUSTER_URL = "https://search-shardselections-kgeo3ftvgebflkspzi4ldcl6b4.ap-south-1.es.amazonaws.com/";
     private static final double initialValue = -0.751;
     /**
      * A rank at which a <i>complete</i> ranking of documents is truncated.
@@ -150,7 +147,7 @@ public abstract class AbstractResourceSelection implements ResourceSelection {
     }
 
     @Override
-    public <T> Map<String, Object> getDocumentResponseScoreAndTime(String indexName, Map query, Boolean executeInCluster, int maxShard, int totalShard, int alpha, List<String> routingFields) {
+    public <T> Map<String, Object> getDocumentResponseScoreAndTime(String indexName, Map<String, Object> query, Boolean executeInCluster, int maxShard, int totalShard, int alpha, List<String> routingFields) {
 
 
         try {
@@ -158,7 +155,7 @@ public abstract class AbstractResourceSelection implements ResourceSelection {
             Map<String, Object> documentInfos = new HashMap<>();
             Object clusterResponse = null;
 
-            if(routingFields != null || checkId("_id")) {
+            if(routingFields != null || checkId(query)) {
                 String jsonResp = null;
                 if(query != null) {
                     ObjectMapper objectMapper = new ObjectMapper();
@@ -186,11 +183,11 @@ public abstract class AbstractResourceSelection implements ResourceSelection {
 
             List<Resource> resources = getResources();
 
-            File doc2resourceFile = new File("/home/yashasvi/Development/thesis/ShardSelection/data/doc2resource");
+            File doc2resourceFile = new File("/home/yashasvi/Development/thesis/shardselection_plugin/data/doc2resource");
 
             Map<String, Resource> doc2resource = getDoc2Resource(doc2resourceFile, resources);
 
-            File csiResultsFile = new File("/home/yashasvi/Development/thesis/ShardSelection/data/csi_result");
+            File csiResultsFile = new File("/home/yashasvi/Development/thesis/shardselection_plugin/data/csi_result");
 
             int csiTopN;
             String jsonResp = null;
@@ -256,22 +253,15 @@ public abstract class AbstractResourceSelection implements ResourceSelection {
 
 
 
-    private static boolean checkId(Object map) {
-        JSONObject json;
+    private static boolean checkId(Map<String, Object> map) {
 
-        json = JSON.parseObject(map.toString());
-        Set<String> keys = json.keySet();
+        Set<String> keys = map.keySet();
         for (String key : keys) {
-            Object value = json.get(key);
-            if (key == "_id") {
+            Object value = map.get(key);
+            if (key.equals("_id")) {
                 return true;
-            } else if (value instanceof JSONObject) {
-                checkId(value);
-            } else if (value instanceof JSONArray) {
-                JSONArray array = ((JSONArray) value);
-                for (Object o : array) {
-                    checkId(o);
-                }
+            } else if (value instanceof Map) {
+               return checkId((Map<String, Object>) value);
             }
         }
         return false;
