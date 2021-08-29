@@ -155,7 +155,7 @@ public abstract class AbstractResourceSelection implements ResourceSelection {
             Map<String, Object> documentInfos = new HashMap<>();
             Object clusterResponse = null;
 
-            if(routingFields != null || checkId(query)) {
+            if(routingFields != null || checkId(query, "_id") || checkId(query, "ids")  || checkId(query, "_routing") ) {
                 String jsonResp = null;
                 if(query != null) {
                     ObjectMapper objectMapper = new ObjectMapper();
@@ -253,15 +253,15 @@ public abstract class AbstractResourceSelection implements ResourceSelection {
 
 
 
-    private static boolean checkId(Map<String, Object> map) {
+    private static boolean checkId(Map<String, Object> map, String field) {
 
         Set<String> keys = map.keySet();
         for (String key : keys) {
             Object value = map.get(key);
-            if (key.equals("_id")) {
+            if (key.equals(field)) {
                 return true;
             } else if (value instanceof Map) {
-               return checkId((Map<String, Object>) value);
+               return checkId((Map<String, Object>) value, field);
             }
         }
         return false;
